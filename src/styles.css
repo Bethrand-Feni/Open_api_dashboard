@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  background: #050505;
+  font-synthesis: none;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background: #050505;
+}
+
+button,
+select {
+  font: inherit;
+}
+
+::selection {
+  color: #050505;
+  background: #f97316;
+}
+
+.hero-title {
+  font-size: clamp(2.3rem, 9.8vw, 7.7rem);
+  text-shadow: 0 0 22px rgba(255, 255, 255, 0.1);
+}
+
+.hero-title-highlight {
+  display: inline;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  padding: 0 0.08em 0.03em;
+  text-shadow: none;
+}
+
+@media (min-width: 640px) {
+  .hero-content-shell {
+    transform: scale(0.85);
+    transform-origin: center;
+  }
+}
+
+.command-select {
+  letter-spacing: 0;
+}
+
+select option {
+  background: #050505;
+  color: #f4f4f5;
+}
+
+.sub-select {
+  color-scheme: dark;
+}
+
+.sub-select:hover,
+.sub-select:focus {
+  background: #101010;
+  border-color: rgba(249, 115, 22, 0.6);
+  color: #f97316;
+}
+
+.command-arrow {
+  width: 2.5rem;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.status-dot {
+  animation: status-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes status-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.86);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
