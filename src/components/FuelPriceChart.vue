@@ -12,62 +12,44 @@ import {
 import { computed, onMounted, ref } from 'vue'
 import { Line } from 'vue-chartjs'
 import { endpoints, request } from '../services/openFuelApi'
-import { normalizeFuelRows } from '../utils/fuelData'
 
 ChartJS.register(CategoryScale, Filler, LinearScale, LineElement, PointElement, Legend, Tooltip)
 
+let cachedHistory = null
+let historyRequest = null
+
 const loading = ref(true)
 const error = ref('')
-const rows = ref([])
-const news = ref(null)
+const history = ref([])
 
-const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
-const fallbackReasons = {
-  petrol: [
-    'International oil prices placed upward pressure on petrol.',
-    'Exchange-rate movement softened the monthly increase.',
-    'Refinery and transport costs lifted the inland price.',
-    'Slate levy adjustments kept the price curve elevated.',
-    'Demand recovered ahead of winter travel periods.',
-    'Latest API news summary will replace this placeholder once history is available.'
-  ],
-  diesel: [
-    'Distillate supply tightened across regional markets.',
-    'Freight and logistics demand supported diesel pricing.',
-    'Global refinery margins pushed diesel higher.',
-    'Currency pressure added to the local pump price.',
-    'Winter demand increased wholesale diesel costs.',
-    'Latest API news summary will replace this placeholder once history is available.'
-  ]
+function average(values) {
+  const numericValues = values.filter((value) => typeof value === 'number' && Number.isFinite(value))
+  if (!numericValues.length) return null
+  const total = numericValues.reduce((sum, value) => sum + value, 0)
+  return Number((total / numericValues.length).toFixed(2))
 }
 
-function getLatestPrice(fuelType) {
-  const inland = rows.value.find((row) => row.fuelType === fuelType && row.location === 'inland')
-  const coast = rows.value.find((row) => row.fuelType === fuelType && row.location === 'coast')
-  return inland?.price ?? coast?.price ?? null
+function monthLabel(value) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleDateString('en-ZA', { month: 'short', year: '2-digit' })
 }
 
-function buildTrend(latestPrice, offsets) {
-  if (!latestPrice) return offsets.map(() => null)
-  return offsets.map((offset) => Number((latestPrice + offset).toFixed(2)))
+function fuelAverage(month, type) {
+  return average(Object.values(month?.[type] || {}))
 }
 
 function reasonFor(type, index) {
-  const apiSummary = type === 'petrol' ? news.value?.petrol : news.value?.diesel
-  if (index === monthLabels.length - 1 && apiSummary) return apiSummary
-  return fallbackReasons[type][index]
+  return history.value[index]?.news?.[type] || 'No monthly summary available yet.'
 }
 
 const chartData = computed(() => {
-  const petrolLatest = getLatestPrice('unleaded95')
-  const dieselLatest = getLatestPrice('diesel50') ?? getLatestPrice('diesel500')
-
   return {
-    labels: monthLabels,
+    labels: history.value.map((month) => monthLabel(month.month)),
     datasets: [
       {
         label: 'Petrol',
-        data: buildTrend(petrolLatest, [-1.35, -1.02, -0.62, -0.28, 0.12, 0]),
+        data: history.value.map((month) => fuelAverage(month, 'petrol')),
         borderColor: '#fb923c',
         backgroundColor: 'rgba(249, 115, 22, 0.14)',
         pointBackgroundColor: '#f97316',
@@ -80,7 +62,7 @@ const chartData = computed(() => {
       },
       {
         label: 'Diesel',
-        data: buildTrend(dieselLatest, [-1.1, -0.85, -0.45, -0.16, 0.18, 0]),
+        data: history.value.map((month) => fuelAverage(month, 'diesel')),
         borderColor: '#a1a1aa',
         backgroundColor: 'rgba(161, 161, 170, 0.08)',
         pointBackgroundColor: '#d4d4d8',
@@ -143,9 +125,9 @@ const chartOptions = computed(() => ({
 }))
 
 const metricItems = computed(() => [
-  { label: 'Period', value: '6M' },
-  { label: 'Petrol', value: getLatestPrice('unleaded95') ? `R${getLatestPrice('unleaded95').toFixed(2)}` : '-' },
-  { label: 'Diesel', value: (getLatestPrice('diesel50') ?? getLatestPrice('diesel500')) ? `R${(getLatestPrice('diesel50') ?? getLatestPrice('diesel500')).toFixed(2)}` : '-' }
+  { label: 'Period', value: `${history.value.length || '-'}M` },
+  { label: 'Petrol', value: fuelAverage(history.value.at(-1), 'petrol') ? `R${fuelAverage(history.value.at(-1), 'petrol').toFixed(2)}` : '-' },
+  { label: 'Diesel', value: fuelAverage(history.value.at(-1), 'diesel') ? `R${fuelAverage(history.value.at(-1), 'diesel').toFixed(2)}` : '-' }
 ])
 
 onMounted(async () => {
@@ -153,13 +135,19 @@ onMounted(async () => {
   error.value = ''
 
   try {
-    const [fuelPayload, newsPayload] = await Promise.all([
-      request(endpoints.allFuel),
-      request(endpoints.allNews)
-    ])
-    rows.value = normalizeFuelRows(fuelPayload)
-    news.value = newsPayload
+    if (!historyRequest) {
+      historyRequest = cachedHistory
+        ? Promise.resolve(cachedHistory)
+        : request(endpoints.fuelHistory).then((payload) => {
+            cachedHistory = payload
+            return payload
+          })
+    }
+
+    const payload = await historyRequest
+    history.value = Array.isArray(payload?.months) ? payload.months : []
   } catch (chartError) {
+    historyRequest = null
     error.value = chartError.message
   } finally {
     loading.value = false
@@ -190,8 +178,8 @@ onMounted(async () => {
       <div v-else-if="error" class="flex h-full items-center justify-center border-l border-red-700 bg-red-950/20 p-4 text-center text-sm text-red-200">
         {{ error }}
       </div>
-      <div v-else-if="!rows.length" class="flex h-full items-center justify-center border-l border-line text-center text-sm text-zinc-500">
-        No chartable petrol or diesel data returned yet.
+      <div v-else-if="!history.length" class="flex h-full items-center justify-center border-l border-line text-center text-sm text-zinc-500">
+        No chartable fuel history returned yet.
       </div>
       <Line v-else :data="chartData" :options="chartOptions" />
     </div>

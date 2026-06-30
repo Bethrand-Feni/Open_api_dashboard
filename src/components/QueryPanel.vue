@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { endpoints, buildUrl, request } from '../services/openFuelApi'
+import { endpoints, buildDisplayUrl, request } from '../services/openFuelApi'
 import { fuelLabels, locationLabels } from '../utils/fuelData'
 
 const emit = defineEmits(['result', 'ran'])
@@ -19,6 +19,7 @@ const locationMenuOpen = ref(false)
 const queryOptions = [
   { id: 'allFuel', label: 'GET ALL FUEL PRICES' },
   { id: 'fuelByTypeLocation', label: 'GET FUEL PRICE BY TYPE + LOCATION' },
+  { id: 'fuelHistory', label: 'GET FUEL PRICE HISTORY' },
   { id: 'allNews', label: 'GET ALL NEWS SUMMARIES' },
   { id: 'newsByFuelType', label: 'GET NEWS BY FUEL TYPE' }
 ]
@@ -30,12 +31,13 @@ const endpointPath = computed(() => {
   if (queryType.value === 'fuelByTypeLocation') {
     return endpoints.fuelByTypeLocation(fuelType.value, location.value)
   }
+  if (queryType.value === 'fuelHistory') return endpoints.fuelHistory
   if (queryType.value === 'allNews') return endpoints.allNews
   if (queryType.value === 'newsByFuelType') return endpoints.newsByFuelType(newsFuelType.value)
   return endpoints.allFuel
 })
 
-const endpointUrl = computed(() => buildUrl(endpointPath.value))
+const endpointUrl = computed(() => buildDisplayUrl(endpointPath.value))
 const selectedQuery = computed(() => queryOptions.find((option) => option.id === queryType.value) || queryOptions[0])
 
 function toggleCommandMenu() {

@@ -1,14 +1,20 @@
 const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || ''
+const displayBaseUrl = import.meta.env.VITE_API_DISPLAY_BASE_URL?.replace(/\/$/, '') || 'https://open-fuel-api.onrender.com'
 
 const endpoints = {
   allFuel: '/fuel/all',
   fuelByTypeLocation: (fuelType, location) => `/fuel/${fuelType}/${location}`,
+  fuelHistory: '/fuel/history',
   allNews: '/news',
   newsByFuelType: (fuelType) => `/news/${fuelType}`
 }
 
 function buildUrl(path) {
   return `${baseUrl}${path}`
+}
+
+function buildDisplayUrl(path) {
+  return `${displayBaseUrl}${path}`
 }
 
 async function request(path) {
@@ -28,4 +34,4 @@ async function request(path) {
   return payload
 }
 
-export { baseUrl, buildUrl, endpoints, request }
+export { baseUrl, buildDisplayUrl, buildUrl, displayBaseUrl, endpoints, request }

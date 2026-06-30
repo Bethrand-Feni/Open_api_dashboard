@@ -1,24 +1,26 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { defineAsyncComponent, onMounted, ref } from 'vue'
 import gsap from 'gsap'
 import { ScrollToPlugin } from 'gsap/ScrollToPlugin'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import FuelPriceChart from './components/FuelPriceChart.vue'
 import QueryPanel from './components/QueryPanel.vue'
 import ResultViewer from './components/ResultViewer.vue'
-import { baseUrl } from './services/openFuelApi'
+import { baseUrl, displayBaseUrl } from './services/openFuelApi'
 
 gsap.registerPlugin(ScrollToPlugin)
 gsap.registerPlugin(ScrollTrigger)
+
+const FuelPriceChart = defineAsyncComponent(() => import('./components/FuelPriceChart.vue'))
 
 const result = ref(null)
 const loading = ref(false)
 const error = ref('')
 const demoSection = ref(null)
 const chartSection = ref(null)
+const chartReady = ref(false)
 const apiReady = Boolean(baseUrl)
 const apiStatusLabel = apiReady
-  ? `Live API target: ${baseUrl}`
+  ? `Live API target: ${displayBaseUrl}`
   : 'Inactive: configure VITE_API_BASE_URL'
 
 function handleResult(event) {
@@ -86,13 +88,26 @@ onMounted(() => {
       }
     })
   })
+
+  if (!chartSection.value) return
+
+  const chartObserver = new IntersectionObserver(
+    ([entry], observer) => {
+      if (!entry.isIntersecting) return
+      chartReady.value = true
+      observer.disconnect()
+    },
+    { rootMargin: '420px 0px' }
+  )
+
+  chartObserver.observe(chartSection.value)
 })
 </script>
 
 <template>
   <main class="min-h-screen bg-carbon text-zinc-100">
     <section class="relative flex min-h-screen flex-col overflow-hidden px-5 py-6 sm:px-8 lg:px-10">
-      <header class="pointer-events-none fixed left-0 top-0 z-20">
+      <header class="pointer-events-none absolute left-0 top-0 z-20">
         <div class="group pointer-events-auto relative flex translate-x-4 translate-y-4 items-center sm:translate-x-5 sm:translate-y-5">
           <span
             class="status-dot block h-4 w-4 rounded-full sm:h-5 sm:w-5"
@@ -139,7 +154,15 @@ onMounted(() => {
 
     <section ref="chartSection" class="reveal-section px-5 sm:px-8 lg:px-10">
       <div class="mx-auto max-w-7xl">
-        <FuelPriceChart />
+        <FuelPriceChart v-if="chartReady" />
+        <section v-else class="flex min-h-screen flex-col py-10 sm:py-12">
+          <div class="border-b border-line pb-3">
+            <h2 class="text-sm font-semibold uppercase tracking-[0.18em] text-zinc-300">Petrol / Diesel Trend</h2>
+          </div>
+          <div class="flex flex-1 items-center justify-center pt-4 text-sm text-zinc-500">
+            Preparing chart...
+          </div>
+        </section>
       </div>
     </section>
   </main>

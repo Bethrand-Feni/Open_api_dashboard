@@ -28,6 +28,7 @@ Set the API base URL:
 
 ```bash
 VITE_API_BASE_URL=/api
+VITE_API_DISPLAY_BASE_URL=https://open-fuel-api.onrender.com
 ```
 
 For local development, Vite proxies `/api` to `https://open-fuel-api.onrender.com` to avoid browser CORS issues. For a deployed frontend, set `VITE_API_BASE_URL` to your deployed API URL after enabling CORS on the API.
@@ -38,6 +39,7 @@ The frontend calls these endpoints:
 
 - `GET /fuel/all`
 - `GET /fuel/{fuel_type}/{location}`
+- `GET /fuel/history`
 - `GET /news`
 - `GET /news/{fuel_type}`
 
