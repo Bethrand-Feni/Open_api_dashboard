@@ -127,7 +127,7 @@ onMounted(() => {
             <h1 class="hero-title font-black uppercase leading-none tracking-normal text-white">
               Open Fuel <span class="hero-title-highlight bg-fuel text-carbon">API</span>
             </h1>
-            <p class="mx-auto mt-5 max-w-xl text-sm leading-6 text-zinc-500 sm:text-base">
+            <p class="mx-auto mt-5 max-w-xl text-base leading-7 text-zinc-500 sm:text-lg">
               South African fuel price data, served through a live API.
             </p>
           </div>
